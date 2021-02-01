@@ -825,7 +825,7 @@ void start_server() {
     struct sockaddr_in serv_addr, cli_addr;
     socklen_t clilen;
     ws_ctx_t *ws_ctx;
-
+    int errorCounter = 0, ret = 0;
 
     /* Initialize buffers */
     lsock = socket(AF_INET, SOCK_STREAM, 0);
@@ -844,8 +844,9 @@ void start_server() {
     }
 
     setsockopt(lsock, SOL_SOCKET, SO_REUSEADDR, (char *)&sopt, sizeof(sopt));
-    if (bind(lsock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+    if (ret = bind(lsock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
         fatal("ERROR on binding listener socket");
+        printf("ret = %d\n", ret);
     }
     listen(lsock,100);
 
@@ -870,9 +871,17 @@ void start_server() {
                        (struct sockaddr *) &cli_addr, 
                        &clilen);
         if (csock < 0) {
-            error("ERROR on accept");
-            continue;
+            if (errorCounter++ < 2)
+            {
+                error("ERROR on accept");
+                continue;
+            }
+            else
+            {
+                kill(0, SIGKILL);
+            }
         }
+        errorCounter = 0;
         handler_msg("got client connection from %s\n",
                     inet_ntoa(cli_addr.sin_addr));
 
